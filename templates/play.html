@@ -55,6 +55,7 @@
   <script>
     var app = new Vue({
       el: '#app',
+
       created () {
         let url = new URL(window.location.href);
         let name = url.searchParams.get("username");
@@ -110,7 +111,7 @@
           // ----------------------------------------------------
           channel.bind('pusher:subscription_succeeded', (player) => {
             this.players = player.count - 1
-            player.each(function (player) {
+            player.each((player) => {
               if (player.id != this.username)
                 this.connectedPlayers.push(player.id)
             });
@@ -146,7 +147,7 @@
               this.otherPlayerName = message
               this.otherPlayerChannel = this.pusher.subscribe('private-' + this.otherPlayerName)
 
-              this.otherPlayerChannel.bind('pusher:subscription_succeeded', function () {
+              this.otherPlayerChannel.bind('pusher:subscription_succeeded', () => {
                 this.otherPlayerChannel.trigger('client-game-started', this.username)
               })
 
@@ -154,7 +155,7 @@
             } else {
               this.otherPlayerChannel = this.pusher.subscribe('private-' + message)
 
-              this.otherPlayerChannel.bind('pusher:subscription_succeeded', function () {
+              this.otherPlayerChannel.bind('pusher:subscription_succeeded', () => {
                 this.otherPlayerChannel.trigger('client-game-declined', "")
               })
 
