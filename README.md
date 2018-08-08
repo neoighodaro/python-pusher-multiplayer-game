@@ -28,7 +28,7 @@ After cloning the application, you need to install its dependencies and source i
 
 ``` $ cd ...```
 
-``` $ pip install flask, pusher```
+``` $ pip install flask pusher```
 
 ``` $ source .venv/bin/activate ```
 
