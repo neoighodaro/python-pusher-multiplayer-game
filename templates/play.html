@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+  <title>TIC-TAC-TOE</title>
+</head>
+<body>
+  <div id="app" class="container-fluid">
+    <div class="container-fluid clearfix mb-3 shadow">
+      <img class="float-left my-3" src="https://thestore.gameops.com/v/vspfiles/photos/Tic-Tac-Go-14.gif" height="62px" width="62px"
+      />
+      <div class="float-right w-25 py-3">
+        <img class="my-3 mx-3 rounded-circle border" src="http://dfsanonymous.club/wp-content/uploads/2017/11/DFSAnonymous-NewLogo.png"
+          height="62px" width="62px" />
+        <p class="d-inline"> {% raw %} {{ username }} {% endraw %} </p>
+      </div>
+    </div>
+    <div class="row mx-5" style="height: 50vh">
+      <div class="col-8 h-50 align-self-center">
+        <div class="row border rounded invisible h-50 w-75 m-auto" style="font-size: 3.6rem" ref="gameboard" @click="playerAction">
+          <div class="h-100 pr-2 col border border-dark" data-id="1" ref="1"></div>
+          <div class="col pr-2 border border-dark" data-id="2" ref="2"></div>
+          <div class="col pr-2 border border-dark" data-id="3" ref="3"></div>
+          <div class="w-100"></div>
+          <div class="h-100 pr-2 col border border-dark" data-id="4" ref="4"></div>
+          <div class="col pr-2 border border-dark" data-id="5" ref="5"></div>
+          <div class="col pr-2 border border-dark" data-id="6" ref="6"></div>
+          <div class="w-100"></div>
+          <div class="h-100 pr-2 col border border-dark" data-id="7" ref="7"></div>
+          <div class="col pr-2 border border-dark" data-id="8" ref="8"></div>
+          <div class="col pr-2 border border-dark" data-id="9" ref="9"></div>
+        </div>
+      </div>
+      <div class="col-4 pl-3">
+        <div class="row h-100">
+          <div class="col border h-75 text-center" style="background: rgb(114, 230, 147);">
+            <p class="my-3"> {% raw %} {{ players }} {% endraw %} online player(s) </p>
+            <hr/>
+            <li class="m-auto py-3 text-dark" style="cursor: pointer;" v-for="member in connectedPlayers" @click="choosePlayer">
+              {% raw %} {{ member }} {% endraw %}
+            </li>
+          </div>
+          <div class="w-100"></div>
+          <div class="col text-center py-3 border h-25" style="background: #b6c0ca; font-size: 1em; font-weight: bold">
+            {% raw %} {{ status }} {% endraw %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://js.pusher.com/4.2/pusher.min.js"></script>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      created () {
+        let url = new URL(window.location.href);
+        let name = url.searchParams.get("username");
+
+        if (name) {
+          this.username = name
+          this.subscribe();
+          this.listeners();
+        } else {
+          this.username = this.generateRandomName();
+          location.assign("/play?username=" + this.username);
+        }
+      },
+
+      data: {
+        username: '',
+        players: 0,
+        connectedPlayers: [],
+        status: '',
+        pusher: pusher = new Pusher('PUSHER_APP_KEY', {
+          authEndpoint: '/pusher/auth',
+          cluster: 'PUSHER_APP_CLUSTER',
+          encrypted: true
+        }),
+        otherPlayerName: '',
+        mychannel: {},
+        otherPlayerChannel: {},
+        firstPlayer: 0,
+        turn: 0,
+        boxes: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+      },
+
+      methods: {
+        generateRandomName: function () {
+          let text = '';
+          let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+          for (var i = 0; i < 6; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+          }
+
+          return text;
+        },
+
+        subscribe: function () {
+          // ----------------------------------------------------
+          // Subscribe to the presence and private channels
+          // ----------------------------------------------------
+          let channel = this.pusher.subscribe('presence-channel');
+          this.myChannel = this.pusher.subscribe('private-' + this.username)
+
+          // ----------------------------------------------------
+          // Update the number of online members on successful subscription
+          // ----------------------------------------------------
+          channel.bind('pusher:subscription_succeeded', (player) => {
+            this.players = player.count - 1
+            player.each(function (player) {
+              if (player.id != this.username)
+                this.connectedPlayers.push(player.id)
+            });
+          });
+
+          // ----------------------------------------------------
+          // Display a notification when a new player comes online
+          // ----------------------------------------------------
+          channel.bind('pusher:member_added', (player) => {
+            this.players++;
+            this.connectedPlayers.push(player.id)
+          });
+
+          // ---------------------------------------------------------------
+          // Decrement the connectedPlayers array when a player disconnects
+          // ---------------------------------------------------------------
+          channel.bind('pusher:member_removed', (player) => {
+            this.players--;
+            var index = this.connectedPlayers.indexOf(player.id);
+            if (index > -1) {
+              this.connectedPlayers.splice(index, 1)
+            }
+          });
+        },
+
+        listeners: function () {
+          // ------------------------------------------------------------------------
+          // Bind to the event that requests a new game session from the other player
+          // ------------------------------------------------------------------------
+          this.pusher.bind('client-' + this.username, (message) => {
+            if (confirm('Do you want to start a game of Tic Tac Toe with ' + message)) {
+
+              this.otherPlayerName = message
+              this.otherPlayerChannel = this.pusher.subscribe('private-' + this.otherPlayerName)
+
+              this.otherPlayerChannel.bind('pusher:subscription_succeeded', function () {
+                this.otherPlayerChannel.trigger('client-game-started', this.username)
+              })
+
+              this.startGame(message)
+            } else {
+              this.otherPlayerChannel = this.pusher.subscribe('private-' + message)
+
+              this.otherPlayerChannel.bind('pusher:subscription_succeeded', function () {
+                this.otherPlayerChannel.trigger('client-game-declined', "")
+              })
+
+              this.gameDeclined()
+            }
+          }),
+
+          // ----------------------------------------------------
+          // Bind to the event that starts a new game session
+          // ----------------------------------------------------
+          this.myChannel.bind('client-game-started', (message) => {
+            this.status = "Game started with " + message
+            this.$refs.gameboard.classList.remove('invisible');
+            this.firstPlayer = 1;
+            this.turn = 1;
+          })
+
+          // ----------------------------------------------------
+          // Bind to the event that declines a game request
+          // ----------------------------------------------------
+          this.myChannel.bind('client-game-declined', () => {
+            this.status = "Game declined"
+          })
+
+          // ----------------------------------------------------------
+          // Update the game board with the moves of the other player
+          // ----------------------------------------------------------
+          this.myChannel.bind('client-new-move', (position) => {
+            if (!this.turn) {
+              this.$refs[position].innerText = this.firstPlayer ? 'O' : 'X'
+            }
+          }),
+
+          // ----------------------------------------------------------
+          // Bind to the event that specifies that it's a players turn
+          // ---------------------------------------------------------
+          this.myChannel.bind('client-your-turn', () => {
+            this.turn = 1;
+          }),
+
+          // -------------------------------------------------------------------------------
+          // Bind to the event that updates the state of the boxes during a game session
+          // ------------------------------------------------------------------------------
+          this.myChannel.bind('client-box-update', (update) => {
+            this.boxes = update;
+          }),
+
+          // ----------------------------------------------------
+          // Bind to the event informs a player that he/she lost
+          // ----------------------------------------------------
+          this.myChannel.bind('client-you-lost', () => {
+            this.gameLost();
+          })
+        },
+
+        choosePlayer: function (e) {
+          this.otherPlayerName = e.target.innerText
+          this.otherPlayerChannel = this.pusher.subscribe('private-' + this.otherPlayerName)
+
+          this.otherPlayerChannel.bind('pusher:subscription_succeeded', function () {
+            this.otherPlayerChannel.trigger('client-' + this.otherPlayerName, this.username)
+          });
+        },
+
+        startGame: function (name) {
+          this.status = "Game started with " + name
+          this.$refs.gameboard.classList.remove('invisible');
+        },
+
+        gameDeclined: function () {
+          this.status = "Game declined"
+        },
+
+        gameWon: function () {
+          this.status = "You WON!"
+          this.$refs.gameboard.classList.add('invisible');
+          this.restartGame()
+        },
+
+        gameLost: function () {
+          this.turn = 1;
+          this.boxes = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+          this.status = "You LOST!"
+          this.$refs.gameboard.classList.add('invisible');
+          this.restartGame()
+        },
+
+        playerAction: function (e) {
+          let index = e.target.dataset.id - 1
+          let tile = this.firstPlayer ? 'X' : 'O'
+
+          if (this.turn && this.boxes[index] == 0) {
+            this.turn = 0
+            this.boxes[index] = tile
+            e.target.innerText = tile
+
+            this.otherPlayerChannel.trigger('client-your-turn', "")
+            this.otherPlayerChannel.trigger('client-box-update', this.boxes)
+            this.otherPlayerChannel.trigger('client-new-move', e.target.dataset.id)
+
+            if (this.theresAMatch()) {
+              this.gameWon()
+              this.boxes = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+              this.otherPlayerChannel.trigger('client-you-lost', '')
+            }
+          }
+        },
+
+        theresAMatch: function () {
+          return this.compare(this.boxes[0], this.boxes[1], this.boxes[2]) ||
+            this.compare(this.boxes[3], this.boxes[4], this.boxes[5]) ||
+            this.compare(this.boxes[6], this.boxes[7], this.boxes[8]) ||
+            this.compare(this.boxes[0], this.boxes[3], this.boxes[6]) ||
+            this.compare(this.boxes[1], this.boxes[4], this.boxes[7]) ||
+            this.compare(this.boxes[2], this.boxes[5], this.boxes[8]) ||
+            this.compare(this.boxes[2], this.boxes[4], this.boxes[6]) ||
+            this.compare(this.boxes[0], this.boxes[4], this.boxes[8])
+        },
+
+        compare: function () {
+          var len = arguments.length;
+          for (var i = 1; i < len; i++) {
+            if (arguments[i] === 0 || arguments[i] !== arguments[i - 1])
+              return false;
+          }
+          return true;
+        },
+
+        restartGame: function () {
+          for (i = 1; i < 10; i++) {
+            this.$refs[i].innerText = ""
+          }
+
+          this.$refs.gameboard.classList.remove('invisible');
+        }
+      }
+    })
+  </script>
+</body>
+</html>
