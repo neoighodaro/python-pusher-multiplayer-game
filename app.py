@@ -15,13 +15,13 @@ name = ''
 
 @app.route('/')
 def index():
-	return render_template('index.html')
+  return render_template('index.html')
 
 @app.route('/play')
 def play():
   global name
   name = request.args.get('username')
-	return render_template('play.html')
+  return render_template('play.html')
 
 @app.route("/pusher/auth", methods=['POST'])
 def pusher_authentication():
@@ -39,3 +39,5 @@ def pusher_authentication():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
+name = ''

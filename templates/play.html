@@ -215,7 +215,7 @@
           this.otherPlayerName = e.target.innerText
           this.otherPlayerChannel = this.pusher.subscribe('private-' + this.otherPlayerName)
 
-          this.otherPlayerChannel.bind('pusher:subscription_succeeded', function () {
+          this.otherPlayerChannel.bind('pusher:subscription_succeeded', () => {
             this.otherPlayerChannel.trigger('client-' + this.otherPlayerName, this.username)
           });
         },
