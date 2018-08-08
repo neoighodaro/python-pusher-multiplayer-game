@@ -15,19 +15,16 @@ name = ''
 
 @app.route('/')
 def index():
-
 	return render_template('index.html')
 
 @app.route('/play')
 def play():
-
-        global name
-        name = request.args.get('username')
+  global name
+  name = request.args.get('username')
 	return render_template('play.html')
 
 @app.route("/pusher/auth", methods=['POST'])
 def pusher_authentication():
-
   auth = pusher.authenticate(
     channel=request.form['channel_name'],
     socket_id=request.form['socket_id'],
