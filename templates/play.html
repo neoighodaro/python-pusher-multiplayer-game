@@ -161,7 +161,7 @@
 
               this.gameDeclined()
             }
-          }),
+          })
 
           // ----------------------------------------------------
           // Bind to the event that starts a new game session
@@ -184,24 +184,22 @@
           // Update the game board with the moves of the other player
           // ----------------------------------------------------------
           this.myChannel.bind('client-new-move', (position) => {
-            if (!this.turn) {
-              this.$refs[position].innerText = this.firstPlayer ? 'O' : 'X'
-            }
-          }),
+            this.$refs[position].innerText = this.firstPlayer ? 'O' : 'X'
+          })
 
           // ----------------------------------------------------------
           // Bind to the event that specifies that it's a players turn
           // ---------------------------------------------------------
           this.myChannel.bind('client-your-turn', () => {
             this.turn = 1;
-          }),
+          })
 
           // -------------------------------------------------------------------------------
           // Bind to the event that updates the state of the boxes during a game session
           // ------------------------------------------------------------------------------
           this.myChannel.bind('client-box-update', (update) => {
             this.boxes = update;
-          }),
+          })
 
           // ----------------------------------------------------
           // Bind to the event informs a player that he/she lost
@@ -217,12 +215,12 @@
 
           this.otherPlayerChannel.bind('pusher:subscription_succeeded', () => {
             this.otherPlayerChannel.trigger('client-' + this.otherPlayerName, this.username)
-          });
+          })
         },
 
         startGame: function (name) {
           this.status = "Game started with " + name
-          this.$refs.gameboard.classList.remove('invisible');
+          this.$refs.gameboard.classList.remove('invisible')
         },
 
         gameDeclined: function () {
