@@ -2,7 +2,7 @@
 
 This is a realtime multiplayer tic-tac-toe game built using Python, Pusher, and JavaScript.
 
-[View tutorial](https://blog.pusher.com/author/neo/)
+[View tutorial](https://pusher.com/tutorials/game-python-vue)
 
 ## Getting Started
 
